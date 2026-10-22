@@ -1,0 +1,1646 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Vzduchový výkon VZT</title>
+
+<!-- "Přidat na plochu": vlastní ikona a spuštění na celou obrazovku -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Vzduchový výkon">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<style>
+  :root {
+    --bg: #f2f2f7;
+    --card: #ffffff;
+    --label: #000000;
+    --label2: rgba(60, 60, 67, 0.68);
+    --sep: rgba(60, 60, 67, 0.2);
+    --fill: rgba(118, 118, 128, 0.12);
+    --accent: #007aff;
+    --tint: rgba(0, 122, 255, 0.12);
+    --green: #34c759;
+    --orange: #ff9500;
+    --purple: #af52de;
+    --teal: #30b0c7;
+    --red: #ff3b30;
+    --thumb: #ffffff;
+    --bar: rgba(242, 242, 247, 0.82);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #000000;
+      --card: #1c1c1e;
+      --label: #ffffff;
+      --label2: rgba(235, 235, 245, 0.62);
+      --sep: rgba(84, 84, 88, 0.65);
+      --fill: rgba(118, 118, 128, 0.24);
+      --accent: #0a84ff;
+      --tint: rgba(10, 132, 255, 0.2);
+      --green: #30d158;
+      --orange: #ff9f0a;
+      --purple: #bf5af2;
+      --teal: #40c8e0;
+      --red: #ff453a;
+      --thumb: #636366;
+      --bar: rgba(0, 0, 0, 0.72);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #000000;
+    --card: #1c1c1e;
+    --label: #ffffff;
+    --label2: rgba(235, 235, 245, 0.62);
+    --sep: rgba(84, 84, 88, 0.65);
+    --fill: rgba(118, 118, 128, 0.24);
+    --accent: #0a84ff;
+    --tint: rgba(10, 132, 255, 0.2);
+    --green: #30d158;
+    --orange: #ff9f0a;
+    --purple: #bf5af2;
+    --teal: #40c8e0;
+    --red: #ff453a;
+    --thumb: #636366;
+    --bar: rgba(0, 0, 0, 0.72);
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--label);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 17px;
+    line-height: 1.35;
+    -webkit-font-smoothing: antialiased;
+    touch-action: manipulation;
+  }
+  button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; text-align: left; }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  h1, h2, p { margin: 0; }
+  [hidden] { display: none !important; }
+
+  /* ---------- Layout shell ---------- */
+  .app { min-height: 100vh; min-height: 100dvh; }
+
+  .sidebar {
+    padding: max(28px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 32px max(16px, env(safe-area-inset-left));
+    max-width: 640px;
+    margin: 0 auto;
+  }
+  .sidebar h1 { font-size: 34px; line-height: 1.12; font-weight: 700; letter-spacing: -0.02em; }
+  .sidebar .sub { margin-top: 6px; color: var(--label2); font-size: 15px; }
+  .list { margin-top: 24px; }
+
+  .card { background: var(--card); border-radius: 16px; overflow: hidden; }
+
+  .row {
+    display: flex; align-items: center; gap: 14px;
+    width: 100%; min-height: 68px; padding: 12px 16px;
+    position: relative;
+  }
+  .row + .row::before {
+    content: ""; position: absolute; top: 0; left: 66px; right: 0; height: 1px; background: var(--sep);
+  }
+  .row:active { background: var(--fill); }
+  .row .txt { flex: 1; min-width: 0; }
+  .row .txt b { display: block; font-weight: 600; }
+  .row .txt small { display: block; margin-top: 2px; font-size: 14px; color: var(--label2); line-height: 1.3; }
+  .row .chev { width: 8px; height: 14px; color: var(--label2); opacity: 0.6; flex: none; }
+  .row[aria-current="page"] { background: var(--tint); }
+  .ico { width: 38px; height: 38px; border-radius: 10px; display: grid; place-items: center; flex: none; }
+  .ico svg { width: 23px; height: 23px; fill: none; stroke: #fff; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .ico.blue { background: var(--accent); }
+  .ico.green { background: var(--green); }
+  .ico.orange { background: var(--orange); }
+  .ico.purple { background: var(--purple); }
+  .ico.teal { background: var(--teal); }
+
+  .detail { min-width: 0; }
+  .navbar {
+    position: sticky; top: 0; z-index: 5;
+    display: flex; align-items: center; height: calc(48px + env(safe-area-inset-top)); padding-top: env(safe-area-inset-top);
+    padding-left: max(6px, env(safe-area-inset-left));
+    background: var(--bar);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    backdrop-filter: saturate(180%) blur(20px);
+  }
+  .back { display: flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 10px; color: var(--accent); border-radius: 10px; }
+  .back svg { width: 9px; height: 16px; }
+
+  .inner { max-width: 640px; margin: 0 auto; padding: 4px max(16px, env(safe-area-inset-right)) 48px max(16px, env(safe-area-inset-left)); }
+  .view { display: none; }
+  .app[data-selected="duct"] #view-duct,
+  .app[data-selected="fan"] #view-fan,
+  .app[data-selected="target"] #view-target,
+  .app[data-selected="recup"] #view-recup,
+  .app[data-selected="summary"] #view-summary { display: block; }
+  .view.enter { animation: viewIn 0.28s cubic-bezier(0.2, 0.8, 0.2, 1); }
+  @keyframes viewIn { from { opacity: 0; transform: translateX(18px); } to { opacity: 1; transform: none; } }
+
+  .view h2 { font-size: 34px; line-height: 1.12; font-weight: 700; letter-spacing: -0.02em; outline: none; }
+  .view .lead { margin-top: 6px; color: var(--label2); font-size: 15px; }
+
+  .calc {
+    margin-top: 24px; display: grid; gap: 20px; align-items: start;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  }
+
+  /* ---------- Segmented control ---------- */
+  .seg {
+    --n: 2; --i: 0;
+    position: relative; display: grid; grid-template-columns: repeat(var(--n), 1fr);
+    background: var(--fill); border-radius: 10px; padding: 2px;
+  }
+  .seg .thumb {
+    position: absolute; top: 2px; bottom: 2px; left: 2px;
+    width: calc((100% - 4px) / var(--n));
+    background: var(--thumb); border-radius: 8px;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12), 0 3px 1px rgba(0, 0, 0, 0.04);
+    transform: translateX(calc(var(--i) * 100%));
+    transition: transform 0.25s cubic-bezier(0.3, 0.9, 0.3, 1);
+  }
+  .seg button { position: relative; z-index: 1; min-height: 40px; text-align: center; font-size: 15px; font-weight: 500; border-radius: 8px; }
+  .seg button[aria-checked="true"] { font-weight: 600; }
+  .seg-gap { margin-bottom: 16px; }
+
+  /* ---------- Fields ---------- */
+  .field {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    min-height: 56px; padding: 0 16px; position: relative; cursor: text;
+  }
+  .field:not([hidden]) ~ .field:not([hidden])::before { content: ""; position: absolute; top: 0; left: 16px; right: 0; height: 1px; background: var(--sep); }
+  .field:has(input:focus:not(.switch)) { background: var(--fill); }
+  .lbl { flex: none; }
+  .ctl { display: flex; align-items: baseline; justify-content: flex-end; gap: 6px; flex: 1; min-width: 0; }
+  .field input {
+    width: 100%; max-width: 9em; min-width: 0; border: 0; background: transparent; outline: none;
+    font: inherit; font-size: 17px; text-align: right; color: var(--label); caret-color: var(--accent);
+    padding: 14px 0; -webkit-appearance: none; appearance: none; border-radius: 0;
+  }
+  .field input::placeholder { color: var(--label2); opacity: 0.55; }
+  .unit { color: var(--label2); min-width: 3ch; }
+  .field.invalid input { color: var(--red); }
+
+  .actions { display: flex; justify-content: flex-end; margin-top: 8px; }
+  .stack > .card:not([hidden]) ~ .card:not([hidden]) { margin-top: 16px; }
+  .add-row {
+    display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 0 16px;
+    color: var(--accent); position: relative;
+  }
+  .add-row::before { content: ""; position: absolute; top: 0; left: 16px; right: 0; height: 1px; background: var(--sep); }
+  .add-row:active { background: var(--fill); }
+  .add-row svg { width: 24px; height: 24px; flex: none; }
+  .rm { width: 44px; height: 44px; margin: 0 -14px 0 0; display: grid; place-items: center; flex: none; border-radius: 50%; }
+  .rm svg { width: 22px; height: 22px; }
+  .rm:active { opacity: 0.5; }
+  .link { color: var(--accent); padding: 10px 8px; min-height: 44px; border-radius: 10px; }
+  .link:active { opacity: 0.5; }
+
+  /* ---------- Result ---------- */
+  .result { padding: 20px; }
+  .res-label { font-size: 15px; color: var(--label2); }
+  .res-num { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; margin-top: 6px; }
+  .res-val {
+    font-size: clamp(48px, 12vw, 64px); line-height: 1.05; font-weight: 700; letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums; overflow-wrap: anywhere;
+  }
+  .res-val.sm { font-size: clamp(36px, 9vw, 46px); }
+  .res-val.empty { color: var(--label2); opacity: 0.5; }
+  .res-unit { font-size: 22px; font-weight: 600; color: var(--accent); }
+  .res-msg { min-height: 22px; margin-top: 8px; font-size: 14px; color: var(--label2); }
+  .res-msg.bad { color: var(--red); }
+  .stats > :only-child { grid-column: 1 / -1; }
+  .stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 14px; padding-top: 16px; border-top: 1px solid var(--sep); }
+  .stats b { display: block; font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .stats small { display: block; margin-top: 2px; font-size: 13px; color: var(--label2); }
+
+  .foot { grid-column: 1 / -1; padding: 0 4px; font-size: 13px; line-height: 1.5; color: var(--label2); }
+  .foot p + p { margin-top: 6px; }
+
+  /* ---------- Přepínač (iOS switch) ---------- */
+  .switch-card { margin-bottom: 16px; }
+  .lbl small { display: block; margin-top: 1px; font-size: 13px; color: var(--label2); line-height: 1.3; }
+  .field input.switch {
+    -webkit-appearance: none; appearance: none; flex: none;
+    width: 51px; height: 31px; max-width: none; min-width: 0; padding: 0; margin: 0;
+    border-radius: 999px; background: rgba(120, 120, 128, 0.32);
+    position: relative; cursor: pointer; transition: background 0.2s;
+  }
+  .field input.switch::before {
+    content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%;
+    background: #fff; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25); transition: transform 0.2s;
+  }
+  .field input.switch:checked { background: var(--green); }
+  .field input.switch:checked::before { transform: translateX(20px); }
+  .field input.switch:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* ---------- Výsledky (přívod / odvod) ---------- */
+  .col-out { display: grid; gap: 16px; align-content: start; }
+  .results { display: grid; gap: 16px; }
+  .result.active { box-shadow: inset 0 0 0 2px var(--accent); }
+
+  /* ---------- Souhrn a odeslání ---------- */
+  .field.wide input { max-width: none; }
+  .preview { display: grid; gap: 16px; }
+  .kv-card { padding-bottom: 6px; }
+  .kv-head { padding: 14px 16px 6px; font-weight: 600; }
+  .kv-row { display: flex; justify-content: space-between; gap: 16px; padding: 10px 16px; position: relative; font-size: 15px; }
+  .kv-row + .kv-row::before { content: ""; position: absolute; top: 0; left: 16px; right: 0; height: 1px; background: var(--sep); }
+  .kv-row .k { color: var(--label2); flex: none; }
+  .kv-row .v { text-align: right; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  .kv-row.first .v { font-weight: 700; }
+  .kv-row.long { flex-direction: column; gap: 4px; }
+  .kv-row.long .v { text-align: left; }
+  .note-card { padding: 18px 16px; color: var(--label2); font-size: 15px; line-height: 1.45; }
+
+  .btns { display: grid; gap: 12px; }
+  .btn {
+    display: flex; align-items: center; justify-content: center; min-height: 50px; padding: 0 20px;
+    border-radius: 14px; background: var(--fill); color: var(--accent);
+    font-weight: 600; text-align: center; text-decoration: none;
+  }
+  .btn.primary { background: var(--accent); color: #fff; }
+  .btn:active { opacity: 0.7; }
+  .btn:disabled, .btn[aria-disabled="true"] { opacity: 0.4; pointer-events: none; }
+  .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .status { min-height: 20px; font-size: 14px; color: var(--label2); }
+  .status.bad { color: var(--red); }
+  .hint { font-size: 13px; line-height: 1.45; color: var(--label2); padding: 0 4px; }
+
+  details.raw summary { cursor: pointer; color: var(--accent); min-height: 44px; display: flex; align-items: center; padding: 0 4px; }
+  .raw textarea {
+    width: 100%; min-height: 200px; resize: vertical; border: 0; border-radius: 12px; padding: 12px;
+    background: var(--card); color: var(--label);
+    font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+
+  /* ---------- Teploty: tlačítko ± a zalamování popisků ---------- */
+  .field .lbl { max-width: 58%; }
+  .ctl:has(.pm) { gap: 5px; }
+  .ctl:has(.pm) input { flex: 0 1 4.2em; width: auto; min-width: 0; }
+  .ctl .unit.t { min-width: 0; }
+  .pm {
+    flex: none; align-self: center; min-width: 34px; height: 32px; padding: 0 6px; border-radius: 9px;
+    background: var(--fill); color: var(--accent); font-size: 17px; font-weight: 600; text-align: center;
+  }
+  .pm:active { opacity: 0.6; }
+
+  /* ---------- Nadpisy skupin (volitelné vstupy) ---------- */
+  .group-title { margin: 20px 4px 8px; font-size: 13px; color: var(--label2); }
+
+  /* ---------- Narrow: navigation stack ---------- */
+  @media (max-width: 859.98px) {
+    .app[data-open="true"] .sidebar { display: none; }
+    .app[data-open="false"] .detail { display: none; }
+    .row .chev { display: block; }
+  }
+
+  /* ---------- Wide: split view ---------- */
+  @media (min-width: 860px) {
+    .app { display: grid; grid-template-columns: clamp(280px, 30vw, 340px) 1fr; }
+    .sidebar { position: sticky; top: 0; height: 100vh; height: 100dvh; overflow-y: auto; margin: 0; max-width: none; padding-left: 20px; padding-right: 20px; border-right: 1px solid var(--sep); }
+    .navbar { display: none; }
+    .row .chev { display: none; }
+    .row { min-height: 72px; }
+    .inner { max-width: 940px; margin: 0; padding: 48px 32px 64px; }
+    .col-out.sticky { position: sticky; top: 32px; max-height: calc(100vh - 64px); max-height: calc(100dvh - 64px); overflow-y: auto; overscroll-behavior: contain; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .view.enter { animation: none; }
+    .seg .thumb { transition: none; }
+  }
+</style>
+</head>
+<body>
+<div class="app" id="app" data-open="false" data-selected="duct">
+
+  <aside class="sidebar">
+    <h1>Vzduchový výkon</h1>
+    <p class="sub">Pomůcka pro servisní techniky VZT</p>
+    <nav class="card list" aria-label="Menu">
+      <button class="row" type="button" data-go="duct">
+        <span class="ico blue" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2.5"/><path d="M7 12h8m-3-3 3 3-3 3"/></svg>
+        </span>
+        <span class="txt"><b>Výpočet na potrubí</b><small>Z rychlosti proudění a rozměrů potrubí</small></span>
+        <svg class="chev" viewBox="0 0 8 14" aria-hidden="true"><path d="M1 1l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button class="row" type="button" data-go="fan">
+        <span class="ico green" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 12C9 9 9.5 5 12 3c2.5 2 3 6 0 9z"/>
+            <path d="M12 12C9 9 9.5 5 12 3c2.5 2 3 6 0 9z" transform="rotate(120 12 12)"/>
+            <path d="M12 12C9 9 9.5 5 12 3c2.5 2 3 6 0 9z" transform="rotate(240 12 12)"/>
+          </svg>
+        </span>
+        <span class="txt"><b>Výpočet z tlaku (k-faktor)</b><small>Z tlaku v Pa na ventilátoru a k-faktoru výrobce</small></span>
+        <svg class="chev" viewBox="0 0 8 14" aria-hidden="true"><path d="M1 1l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button class="row" type="button" data-go="target">
+        <span class="ico purple" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="0.9" fill="#fff"/></svg>
+        </span>
+        <span class="txt"><b>Cílová rychlost</b><small>Z požadovaného výkonu v m³/h a rozměrů potrubí</small></span>
+        <svg class="chev" viewBox="0 0 8 14" aria-hidden="true"><path d="M1 1l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button class="row" type="button" data-go="recup">
+        <span class="ico teal" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M12 3l8 9-8 9-8-9z"/><path d="M8 12h8"/></svg>
+        </span>
+        <span class="txt"><b>Rekuperátor</b><small>Účinnost z teplot vzduchu, nebo teplota z účinnosti</small></span>
+        <svg class="chev" viewBox="0 0 8 14" aria-hidden="true"><path d="M1 1l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button class="row" type="button" data-go="summary">
+        <span class="ico orange" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M12 15V4m0 0L8.5 7.5M12 4l3.5 3.5"/><path d="M6 11v7.5A2.5 2.5 0 0 0 8.5 21h7a2.5 2.5 0 0 0 2.5-2.5V11"/></svg>
+        </span>
+        <span class="txt"><b>Souhrn a odeslání</b><small>Název akce, zařízení a odeslání výsledků</small></span>
+        <svg class="chev" viewBox="0 0 8 14" aria-hidden="true"><path d="M1 1l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </nav>
+  </aside>
+
+  <main class="detail">
+    <div class="navbar">
+      <button class="back" type="button" id="back">
+        <svg viewBox="0 0 9 16" aria-hidden="true"><path d="M8 1L1 8l7 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Menu</span>
+      </button>
+    </div>
+
+    <div class="inner">
+
+      <!-- Výpočet na potrubí -->
+      <section class="view" id="view-duct" aria-labelledby="t-duct">
+        <h2 id="t-duct" tabindex="-1">Výpočet na potrubí</h2>
+        <p class="lead">Průtok vzduchu z naměřené rychlosti a rozměrů potrubí.</p>
+
+        <div class="calc">
+          <div>
+            <div class="card switch-card">
+              <label class="field">
+                <span class="lbl">Přívod a odvod<small>Dva samostatné výsledky</small></span>
+                <input type="checkbox" role="switch" class="switch" data-split aria-label="Přívod a odvod, dva samostatné výsledky">
+              </label>
+            </div>
+            <div class="seg seg-gap" role="radiogroup" aria-label="Větev" data-seg="channel" hidden>
+              <span class="thumb" aria-hidden="true"></span>
+              <button type="button" role="radio" aria-checked="true" data-val="supply">Přívod</button>
+              <button type="button" role="radio" aria-checked="false" data-val="exhaust">Odvod</button>
+            </div>
+            <div data-panels></div>
+          </div>
+
+          <div class="col-out sticky">
+            <div class="results" data-results></div>
+            <div class="actions"><button class="link" type="button" data-goto="summary">Souhrn a odeslání výsledků</button></div>
+          </div>
+
+          <div class="foot">
+            <p>Průtok [m³/s] = v · S, vzduchový výkon [m³/h] = průtok · 3600. S je průřez potrubí v m².</p>
+            <p>Pro rychlost použijte průměr z měření v celém průřezu potrubí. Ve vícebodovém režimu je rychlost aritmetický průměr všech zadaných bodů. Body rozložte rovnoměrně po průřezu (mřížka), prázdné řádky se do průměru nepočítají.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Výpočet z tlaku a k-faktoru -->
+      <section class="view" id="view-fan" aria-labelledby="t-fan">
+        <h2 id="t-fan" tabindex="-1">Výpočet z tlaku (k-faktor)</h2>
+        <p class="lead">Průtok vzduchu z tlaku na ventilátoru a k-faktoru výrobce.</p>
+
+        <div class="calc">
+          <div>
+            <div class="card switch-card">
+              <label class="field">
+                <span class="lbl">Přívod a odvod<small>Dva samostatné výsledky</small></span>
+                <input type="checkbox" role="switch" class="switch" data-split aria-label="Přívod a odvod, dva samostatné výsledky">
+              </label>
+            </div>
+            <div class="seg seg-gap" role="radiogroup" aria-label="Větev" data-seg="channel" hidden>
+              <span class="thumb" aria-hidden="true"></span>
+              <button type="button" role="radio" aria-checked="true" data-val="supply">Přívod</button>
+              <button type="button" role="radio" aria-checked="false" data-val="exhaust">Odvod</button>
+            </div>
+            <div data-panels></div>
+          </div>
+
+          <div class="col-out sticky">
+            <div class="results" data-results></div>
+            <div class="actions"><button class="link" type="button" data-goto="summary">Souhrn a odeslání výsledků</button></div>
+          </div>
+
+          <div class="foot">
+            <p>Průtok [m³/s] = (1 / k) · √Δp, vzduchový výkon [m³/h] = průtok · 3600.</p>
+            <p>k-faktor je konstanta konkrétního zařízení, kterou uvádí výrobce. Tlak Δp měřte způsobem, který výrobce předepisuje.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Cílová rychlost -->
+      <section class="view" id="view-target" aria-labelledby="t-target">
+        <h2 id="t-target" tabindex="-1">Cílová rychlost</h2>
+        <p class="lead">Rychlost proudění potřebná pro požadovaný vzduchový výkon.</p>
+
+        <div class="calc">
+          <div>
+            <div class="card switch-card">
+              <label class="field">
+                <span class="lbl">Přívod a odvod<small>Dva samostatné výsledky</small></span>
+                <input type="checkbox" role="switch" class="switch" data-split aria-label="Přívod a odvod, dva samostatné výsledky">
+              </label>
+            </div>
+            <div class="seg seg-gap" role="radiogroup" aria-label="Větev" data-seg="channel" hidden>
+              <span class="thumb" aria-hidden="true"></span>
+              <button type="button" role="radio" aria-checked="true" data-val="supply">Přívod</button>
+              <button type="button" role="radio" aria-checked="false" data-val="exhaust">Odvod</button>
+            </div>
+            <div data-panels></div>
+          </div>
+
+          <div class="col-out sticky">
+            <div class="results" data-results></div>
+            <div class="actions"><button class="link" type="button" data-goto="summary">Souhrn a odeslání výsledků</button></div>
+          </div>
+
+          <div class="foot">
+            <p>Cílová rychlost [m/s] = požadovaný výkon [m³/h] / (S · 3600). S je průřez potrubí v m².</p>
+            <p>Použijte ji jako cíl při seřizování: naměřená průměrná rychlost v potrubí má odpovídat této hodnotě.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Rekuperátor -->
+      <section class="view" id="view-recup" aria-labelledby="t-recup">
+        <h2 id="t-recup" tabindex="-1">Rekuperátor</h2>
+        <p class="lead">Účinnost rekuperace z teplot vzduchu, nebo teplota vzduchu ze zadané účinnosti.</p>
+
+        <div class="calc">
+          <div>
+            <div data-panels></div>
+          </div>
+
+          <div class="col-out sticky">
+            <div class="results" data-results></div>
+            <div class="actions"><button class="link" type="button" data-goto="summary">Souhrn a odeslání výsledků</button></div>
+          </div>
+
+          <div class="foot">
+            <p>Účinnost (přívodní strana) η = (t₂ − t₁) / (t₃ − t₁) · 100 %, kde t₁ je venkovní vzduch, t₂ přívodní vzduch za rekuperátorem a t₃ odváděný vzduch z místnosti. Odpadní strana: η = (t₃ − t₄) / (t₃ − t₁) · 100 %, kde t₄ je odpadní vzduch za rekuperátorem.</p>
+            <p>Teplota ze zadané účinnosti: t₂ = t₁ + η · (t₃ − t₁), t₄ = t₃ − η · (t₃ − t₁). Obě strany mají stejnou účinnost jen při vyváženém průtoku a bez kondenzace, jinak se liší.</p>
+            <p>Výkon ohřívače P = q · ρ · c · (t žádaná − t₂) / 3600 s ρ = 1,2 kg/m³ a c = 1,005 kJ/(kg·K), tedy přibližně P [kW] = 0,335 · q [m³/h] · Δt [K] / 1000. Vlhkost výkon ohřívače mění o méně než 1 %, proto se do něj nezapočítává. Ohřívač se nepočítá, pokud rekuperace žádané teploty dosáhne.</p>
+            <p>Rosný bod se počítá z teploty a relativní vlhkosti odváděného vzduchu. Kondenzace na odpadní straně nastává, když je odpadní vzduch za rekuperátorem pod rosným bodem, riziko námrazy když je navíc pod 0 °C. Teplota odpadního vzduchu se bere z měření, jinak se odhadne z účinnosti (vyvážený průtok). Jde o orientační kontrolu.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Souhrn a odeslání -->
+      <section class="view" id="view-summary" aria-labelledby="t-summary">
+        <h2 id="t-summary" tabindex="-1">Souhrn a odeslání</h2>
+        <p class="lead">Údaje o akci a výsledky měření k odeslání.</p>
+
+        <div class="calc">
+          <div>
+            <div class="card">
+              <label class="field wide" data-f="event">
+                <span class="lbl">Název akce</span>
+                <span class="ctl"><input type="text" autocomplete="off" enterkeyhint="next" placeholder="např. Administrativní budova A" aria-label="Název akce"></span>
+              </label>
+              <label class="field wide" data-f="device">
+                <span class="lbl">Zařízení</span>
+                <span class="ctl"><input type="text" autocomplete="off" enterkeyhint="done" placeholder="např. VZT jednotka 01" aria-label="Zařízení"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="col-out">
+            <div class="preview" data-preview></div>
+            <div class="btns">
+              <button class="btn primary" type="button" data-copy>Kopírovat text</button>
+              <button class="btn" type="button" data-subject>Kopírovat předmět e-mailu</button>
+              <button class="btn" type="button" data-save hidden>Uložit do souboru</button>
+            </div>
+            <p class="status" role="status" data-status></p>
+            <p class="hint" data-hint></p>
+            <details class="raw" data-raw>
+              <summary>Text zprávy</summary>
+              <textarea readonly data-report aria-label="Text zprávy"></textarea>
+            </details>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<!-- Šablony panelů: každý výpočet se vytvoří dvakrát (přívod, odvod) -->
+<template id="tpl-duct">
+  <div class="panel">
+    <div class="seg seg-gap" role="radiogroup" aria-label="Způsob měření" data-seg="mode">
+      <span class="thumb" aria-hidden="true"></span>
+      <button type="button" role="radio" aria-checked="true" data-val="single">Jedno měření</button>
+      <button type="button" role="radio" aria-checked="false" data-val="multi">Vícebodové měření</button>
+    </div>
+    <div class="seg seg-gap" role="radiogroup" aria-label="Tvar potrubí" data-seg="shape">
+      <span class="thumb" aria-hidden="true"></span>
+      <button type="button" role="radio" aria-checked="true" data-val="rect">Hranaté</button>
+      <button type="button" role="radio" aria-checked="false" data-val="round">Kruhové</button>
+    </div>
+
+    <div class="stack">
+      <div class="card" data-card="v1">
+        <label class="field" data-f="v">
+          <span class="lbl">Rychlost proudění</span>
+          <span class="ctl"><input inputmode="decimal" autocomplete="off" placeholder="0" aria-label="Rychlost proudění v metrech za sekundu"><span class="unit">m/s</span></span>
+        </label>
+      </div>
+      <div class="card" data-card="vn" hidden>
+        <div data-points></div>
+        <button type="button" class="add-row" data-add>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="currentColor"/><path d="M12 7v10M7 12h10" stroke="#fff" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
+          <span>Přidat další bod</span>
+        </button>
+      </div>
+      <div class="card">
+        <label class="field" data-f="a">
+          <span class="lbl">Rozměr A</span>
+          <span class="ctl"><input inputmode="decimal" autocomplete="off" placeholder="0" aria-label="Rozměr A v milimetrech"><span class="unit">mm</span></span>
+        </label>
+        <label class="field" data-f="b">
+          <span class="lbl">Rozměr B</span>
+          <span class="ctl"><input inputmode="decimal" autocomplete="off" placeholder="0" aria-label="Rozměr B v milimetrech"><span class="unit">mm</span></span>
+        </label>
+        <label class="field" data-f="d" hidden>
+          <span class="lbl">Průměr Ø</span>
+          <span class="ctl"><input inputmode="decimal" autocomplete="off" placeholder="0" aria-label="Průměr potrubí v milimetrech"><span class="unit">mm</span></span>
+        </label>
+      </div>
+    </div>
+    <div class="actions"><button class="link" type="button" data-reset>Vymazat hodnoty</button></div>
+  </div>
+</template>
+
+<template id="tpl-target">
+  <div class="panel">
+    <div class="seg seg-gap" role="radiogroup" aria-label="Tvar potrubí" data-seg="shape">
+      <span class="thumb" aria-hidden="true"></span>
+      <button type="button" role="radio" aria-checked="true" data-val="rect">Hranaté</button>
+      <button type="button" role="radio" aria-checked="false" data-val="round">Kruhové</button>
+    </div>
+    <div class="stack">
+      <div class="card">
+        <label class="field" data-f="q">
+          <span class="lbl">Požadovaný výkon</span>
+          <span class="ctl"><input inputmode="decimal" autocomplete="off" placeholder="0" aria-label="Požadovaný vzduchový výkon v metrech krychlových za hodinu"><span class="unit">m³/h</span></span>
+        </label>
+      </div>
+      <div class="card">
+        <label class="field" data-f="a">
+          <span class="lbl">Rozměr A</span>
+          <span class="ctl"><input inputmode="decimal" autocomplete="off" placeholder="0" aria-label="Rozměr A v milimetrech"><span class="unit">mm</span></span>
+        </label>
+        <label class="field" data-f="b">
+          <span class="lbl">Rozměr B</span>
+          <span class="ctl"><input inputmode="decimal" autocomplete="off" placeholder="0" aria-label="Rozměr B v milimetrech"><span class="unit">mm</span></span>
+        </label>
+        <label class="field" data-f="d" hidden>
+          <span class="lbl">Průměr Ø</span>
+          <span class="ctl"><input inputmode="decimal" autocomplete="off" placeholder="0" aria-label="Průměr potrubí v milimetrech"><span class="unit">mm</span></span>
+        </label>
+      </div>
+    </div>
+    <div class="actions"><button class="link" type="button" data-reset>Vymazat hodnoty</button></div>
+  </div>
+</template>
+
+<template id="tpl-recup">
+  <div class="panel">
+    <div class="seg seg-gap" role="radiogroup" aria-label="Co počítat" data-seg="mode">
+      <span class="thumb" aria-hidden="true"></span>
+      <button type="button" role="radio" aria-checked="true" data-val="eff">Zjistit účinnost</button>
+      <button type="button" role="radio" aria-checked="false" data-val="temp">Zjistit teplotu</button>
+    </div>
+    <div class="card">
+      <label class="field" data-f="eta" hidden>
+        <span class="lbl">Účinnost<small>teplotní účinnost rekuperace</small></span>
+        <span class="ctl"><input inputmode="decimal" autocomplete="off" placeholder="0" aria-label="Účinnost rekuperace v procentech"><span class="unit">%</span></span>
+      </label>
+      <label class="field" data-f="t1">
+        <span class="lbl">Venkovní vzduch<small>vstup rekuperátoru</small></span>
+        <span class="ctl"><button type="button" class="pm" aria-label="Změnit znaménko teploty">±</button><input inputmode="decimal" autocomplete="off" placeholder="0" aria-label="Teplota venkovního vzduchu ve stupních Celsia"><span class="unit t">°C</span></span>
+      </label>
+      <label class="field" data-f="t2">
+        <span class="lbl">Přívodní vzduch<small>za rekuperátorem</small></span>
+        <span class="ctl"><button type="button" class="pm" aria-label="Změnit znaménko teploty">±</button><input inputmode="decimal" autocomplete="off" placeholder="0" aria-label="Teplota přívodního vzduchu za rekuperátorem ve stupních Celsia"><span class="unit t">°C</span></span>
+      </label>
+      <label class="field" data-f="t3">
+        <span class="lbl">Odváděný vzduch<small>z místnosti</small></span>
+        <span class="ctl"><button type="button" class="pm" aria-label="Změnit znaménko teploty">±</button><input inputmode="decimal" autocomplete="off" placeholder="0" aria-label="Teplota odváděného vzduchu z místnosti ve stupních Celsia"><span class="unit t">°C</span></span>
+      </label>
+      <label class="field" data-f="t4">
+        <span class="lbl">Odpadní vzduch<small>volitelné</small></span>
+        <span class="ctl"><button type="button" class="pm" aria-label="Změnit znaménko teploty">±</button><input inputmode="decimal" autocomplete="off" placeholder="0" aria-label="Teplota odpadního vzduchu za rekuperátorem ve stupních Celsia, volitelné"><span class="unit t">°C</span></span>
+      </label>
+    </div>
+    <p class="group-title">Vlhkost (volitelné)</p>
+    <div class="card">
+      <label class="field" data-f="rh">
+        <span class="lbl">Relativní vlhkost<small>odváděného vzduchu</small></span>
+        <span class="ctl"><input inputmode="decimal" autocomplete="off" placeholder="0" aria-label="Relativní vlhkost odváděného vzduchu v procentech"><span class="unit">%</span></span>
+      </label>
+    </div>
+    <p class="group-title">Ohřívač (volitelné)</p>
+    <div class="card">
+      <label class="field" data-f="tset">
+        <span class="lbl">Žádaná teplota přívodu<small>za ohřívačem</small></span>
+        <span class="ctl"><input inputmode="decimal" autocomplete="off" placeholder="0" aria-label="Žádaná teplota přívodního vzduchu za ohřívačem ve stupních Celsia"><span class="unit t">°C</span></span>
+      </label>
+      <label class="field" data-f="q">
+        <span class="lbl">Průtok vzduchu<small>přívodní</small></span>
+        <span class="ctl"><input inputmode="decimal" autocomplete="off" placeholder="0" aria-label="Průtok přívodního vzduchu v metrech krychlových za hodinu"><span class="unit">m³/h</span></span>
+      </label>
+    </div>
+    <div class="actions"><button class="link" type="button" data-reset>Vymazat hodnoty</button></div>
+  </div>
+</template>
+
+<template id="tpl-fan">
+  <div class="panel">
+    <div class="card">
+      <label class="field" data-f="dp">
+        <span class="lbl">Naměřený tlak Δp</span>
+        <span class="ctl"><input inputmode="decimal" autocomplete="off" placeholder="0" aria-label="Naměřený tlak v pascalech"><span class="unit">Pa</span></span>
+      </label>
+      <label class="field" data-f="k">
+        <span class="lbl">k-faktor</span>
+        <span class="ctl"><input inputmode="decimal" autocomplete="off" placeholder="0" aria-label="k-faktor podle výrobce"></span>
+      </label>
+    </div>
+    <div class="actions"><button class="link" type="button" data-reset>Vymazat hodnoty</button></div>
+  </div>
+</template>
+
+<script>
+(function () {
+  "use strict";
+
+  // <calc>
+  function parseNum(str) {
+    var t = String(str).trim().replace(/\s+/g, "").replace(",", ".");
+    if (t === "") return { s: "empty" };
+    if (!/^\d*\.?\d*$/.test(t) || t === ".") return { s: "invalid" };
+    var n = Number(t);
+    return isFinite(n) ? { s: "ok", v: n } : { s: "invalid" };
+  }
+  function ductArea(shape, a, b) {           // mm -> m²
+    if (shape === "round") return Math.PI * Math.pow(a / 1000, 2) / 4;
+    return (a / 1000) * (b / 1000);
+  }
+  function ductFlow(v, area) { return v * area * 3600; }          // m³/h
+  function fanFlow(k, dp) { return (1 / k) * Math.sqrt(dp); }     // průtok q v m³/s
+  function targetVelocity(q, area) { return q / (area * 3600); }   // q v m³/h, area v m² -> rychlost v m/s
+  function rangeOf(a) { return { min: Math.min.apply(null, a), max: Math.max.apply(null, a) }; }
+  function meanOf(a) { var s = 0; for (var i = 0; i < a.length; i++) s += a[i]; return s / a.length; }
+  function parsePoints(strs) {               // vícebodové měření: prázdné se přeskočí
+    var vals = [], flags = [], bad = false;
+    strs.forEach(function (s) {
+      var p = parseNum(s);
+      flags.push(p.s);
+      if (p.s === "invalid") bad = true;
+      else if (p.s === "ok") vals.push(p.v);
+    });
+    return { vals: vals, flags: flags, bad: bad };
+  }
+  function parseTemp(str) {                   // teplota: může být záporná (mínus, pomlčka i typografické znaménko)
+    var t = String(str).trim().replace(/\s+/g, "").replace(/[\u2212\u2013\u2014]/g, "-").replace(",", ".");
+    if (t === "" || t === "-") return { s: "empty" };
+    if (!/^-?(\d+\.?\d*|\.\d+)$/.test(t)) return { s: "invalid" };
+    var n = Number(t);
+    return isFinite(n) ? { s: "ok", v: n } : { s: "invalid" };
+  }
+  // teplotní účinnost rekuperace podle t1 (venkovní), t2 (přívodní za rekuperátorem), t3 (odváděný z místnosti), t4 (odpadní)
+  function recupEfficiency(t1, t2, t3) { return (t2 - t1) / (t3 - t1) * 100; }     // přívodní strana, %
+  function exhaustEfficiency(t1, t3, t4) { return (t3 - t4) / (t3 - t1) * 100; }   // odpadní strana, %
+  function supplyTemp(eta, t1, t3) { return t1 + eta / 100 * (t3 - t1); }          // eta v %
+  function exhaustTemp(eta, t1, t3) { return t3 - eta / 100 * (t3 - t1); }
+  // vlhkost (Magnus): rosný bod a měrná vlhkost z teploty [°C] a relativní vlhkosti [%]
+  function dewPoint(t, rh) { var g = Math.log(rh / 100) + 17.625 * t / (243.04 + t); return 243.04 * g / (17.625 - g); }
+  function humidityRatio(t, rh) {                                                   // kg vodní páry na kg suchého vzduchu
+    var pv = rh / 100 * 610.94 * Math.exp(17.625 * t / (t + 243.04));
+    return 0.622 * pv / (101325 - pv);
+  }
+  // ohřívač: P [kW] = q [m³/h] · ρ (1,2 kg/m³) · c (1,005 kJ/kg·K) · Δt [K] / 3600
+  var HEAT_KW = 1.2 * 1.005 / 3600;
+  function heaterPower(q, dt) { return q * dt * HEAT_KW; }
+  function requiredEfficiency(tset, t1, t3) { return (tset - t1) / (t3 - t1) * 100; }   // účinnost, při které ohřívač nebude potřeba
+  // </calc>
+
+  var cache = {};
+  function nf(min, max) {
+    var key = min + "-" + max;
+    if (!cache[key]) cache[key] = new Intl.NumberFormat("cs-CZ", { minimumFractionDigits: min, maximumFractionDigits: max });
+    return cache[key];
+  }
+  function fmtQ(x) { var d = x >= 100 ? 0 : x >= 10 ? 1 : 2; return nf(d, d).format(x); }
+  function fmtS(x) { var d = x >= 10 ? 2 : x >= 1 ? 3 : 4; return nf(d, d).format(x); }
+  function fmt2(x) { return nf(2, 2).format(x); }
+  function fmtIn(x) { return nf(0, 3).format(x); }
+
+  function $(s, r) { return (r || document).querySelector(s); }
+  function $$(s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); }
+
+  // ---------- Navigace ----------
+  var app = $("#app");
+  var rows = $$(".row");
+  var wide = window.matchMedia("(min-width: 860px)");
+  var selected = "duct";
+  var open = false;
+  var onOpen = {};
+
+  function render() {
+    app.dataset.open = String(open);
+    app.dataset.selected = selected;
+    rows.forEach(function (r) {
+      if (wide.matches && r.dataset.go === selected) r.setAttribute("aria-current", "page");
+      else r.removeAttribute("aria-current");
+    });
+  }
+  function openView(id) {
+    selected = id;
+    var wasOpen = open;
+    open = true;
+    if (!wide.matches) {
+      try {
+        if (wasOpen) history.replaceState({ v: id }, ""); else history.pushState({ v: id }, "");
+      } catch (e) {}
+    }
+    render();
+    if (onOpen[id]) onOpen[id]();
+    var view = $("#view-" + id);
+    view.classList.remove("enter");
+    void view.offsetWidth;
+    view.classList.add("enter");
+    window.scrollTo(0, 0);
+    if (!wide.matches) $("#t-" + id).focus({ preventScroll: true });
+  }
+  function closeView() {
+    if (history.state && history.state.v) { try { history.back(); return; } catch (e) {} }
+    open = false;
+    render();
+    window.scrollTo(0, 0);
+    var r = $('.row[data-go="' + selected + '"]');
+    if (r) r.focus({ preventScroll: true });
+  }
+  rows.forEach(function (r) { r.addEventListener("click", function () { openView(r.dataset.go); }); });
+  $("#back").addEventListener("click", closeView);
+  document.addEventListener("click", function (e) {
+    var g = e.target.closest("[data-goto]");
+    if (g) openView(g.dataset.goto);
+  });
+  window.addEventListener("popstate", function () { open = false; render(); window.scrollTo(0, 0); });
+  if (wide.addEventListener) wide.addEventListener("change", render); else wide.addListener(render);
+
+  // ---------- Přepínač segmentů ----------
+  function initSeg(el, onChange) {
+    var btns = $$("button", el);
+    function set(i, fire) {
+      btns.forEach(function (b, k) {
+        b.setAttribute("aria-checked", String(k === i));
+        b.tabIndex = k === i ? 0 : -1;
+      });
+      el.style.setProperty("--i", i);
+      if (fire) onChange(btns[i].dataset.val);
+    }
+    btns.forEach(function (b, i) {
+      b.addEventListener("click", function () { set(i, true); });
+      b.addEventListener("keydown", function (e) {
+        var j = null;
+        if (e.key === "ArrowRight" || e.key === "ArrowDown") j = (i + 1) % btns.length;
+        if (e.key === "ArrowLeft" || e.key === "ArrowUp") j = (i - 1 + btns.length) % btns.length;
+        if (j !== null) { e.preventDefault(); set(j, true); btns[j].focus(); }
+      });
+    });
+    set(0, false);
+  }
+
+  // ---------- Společné pomocné funkce ----------
+  function checkFields(list) {
+    // list: [{ el, zeroOk, signed, optional, max }]  ->  { state: "bad" | "empty" | "ok", vals, invalid }
+    var bad = false, empty = false, vals = [], invalid = [];
+    list.forEach(function (f) {
+      var p = f.signed ? parseTemp(f.el.value) : parseNum(f.el.value);
+      var inv = p.s === "invalid" ||
+        (p.s === "ok" && ((!f.signed && !f.zeroOk && p.v === 0) || (f.max !== undefined && p.v > f.max)));
+      f.el.closest(".field").classList.toggle("invalid", inv);
+      invalid.push(inv);
+      if (inv) bad = true;
+      if (p.s === "empty" && !f.optional) empty = true;
+      vals.push(p.v);
+    });
+    return { state: bad ? "bad" : empty ? "empty" : "ok", vals: vals, invalid: invalid };
+  }
+  function message(state) {
+    if (state === "bad") return { msg: "Zadejte kladné číslo.", bad: true };
+    return { msg: "Vyplňte všechny hodnoty.", bad: false };
+  }
+  function wireEnterBlur(root) {
+    root.addEventListener("keydown", function (e) {
+      if (e.key !== "Enter" || e.target.tagName !== "INPUT") return;
+      if (e.target.closest("[data-point]")) return;       // body řeší vícebodové měření
+      e.target.blur();
+    });
+  }
+  function wireReset(root, compute, extra) {
+    $("[data-reset]", root).addEventListener("click", function () {
+      $$("input", root).forEach(function (i) { i.value = ""; });
+      if (extra) extra();
+      compute();
+      var first = $$("input", root).filter(function (i) { return !i.closest("[hidden]"); })[0];
+      if (first) first.focus();
+    });
+  }
+  function makePanel(tplId, factory, onChange) {
+    var tpl = document.getElementById(tplId);
+    var root = document.importNode(tpl.content, true).firstElementChild;
+    return factory(root, onChange);
+  }
+
+  // ---------- Panel: výpočet na potrubí ----------
+  function createDuctPanel(root, onChange) {
+    var shape = "rect";
+    var mode = "single";
+    var MAX_POINTS = 100;
+    var fA = $('[data-f="a"]', root), fB = $('[data-f="b"]', root), fD = $('[data-f="d"]', root);
+    var vIn = $('[data-f="v"] input', root);
+    var aIn = $("input", fA), bIn = $("input", fB), dIn = $("input", fD);
+    var cardV1 = $('[data-card="v1"]', root), cardVn = $('[data-card="vn"]', root);
+    var pointsBox = $("[data-points]", root);
+    var addBtn = $("[data-add]", root);
+    var RM_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" style="fill:var(--red)"/><path d="M7 12h10" stroke="#fff" stroke-width="2" stroke-linecap="round" fill="none"/></svg>';
+    var api = { el: root, result: null };
+
+    function pointRows() { return $$("[data-point]", pointsBox); }
+
+    function renumber() {
+      var list = pointRows();
+      list.forEach(function (row, i) {
+        $(".lbl", row).textContent = "Bod " + (i + 1);
+        $("input", row).setAttribute("aria-label", "Rychlost v bodě " + (i + 1) + " v metrech za sekundu");
+        var rm = $(".rm", row);
+        rm.hidden = list.length <= 2;
+        rm.setAttribute("aria-label", "Odebrat bod " + (i + 1));
+      });
+      addBtn.hidden = list.length >= MAX_POINTS;
+    }
+
+    function buildRow() {
+      var row = document.createElement("label");
+      row.className = "field";
+      row.setAttribute("data-point", "");
+      row.innerHTML = '<span class="lbl"></span>' +
+        '<span class="ctl"><input inputmode="decimal" enterkeyhint="next" autocomplete="off" placeholder="0"><span class="unit">m/s</span></span>' +
+        '<button type="button" class="rm">' + RM_ICON + '</button>';
+      pointsBox.appendChild(row);
+      return row;
+    }
+
+    function addPoint(focus) {
+      if (pointRows().length >= MAX_POINTS) return;
+      var row = buildRow();
+      renumber();
+      if (focus) $("input", row).focus();
+      compute();
+    }
+
+    function evaluate() {
+      var dimList = shape === "rect"
+        ? [{ el: aIn, zeroOk: false }, { el: bIn, zeroOk: false }]
+        : [{ el: dIn, zeroOk: false }];
+      var state, v = null, count = 0, total = 0, dimVals = [], pointVals = [];
+
+      if (mode === "single") {
+        var c = checkFields([{ el: vIn, zeroOk: true }].concat(dimList));
+        state = c.state;
+        if (state === "ok") { v = c.vals[0]; count = total = 1; dimVals = c.vals.slice(1); }
+      } else {
+        var list = pointRows();
+        var pts = parsePoints(list.map(function (r) { return $("input", r).value; }));
+        list.forEach(function (r, i) { r.classList.toggle("invalid", pts.flags[i] === "invalid"); });
+        var d = checkFields(dimList);
+        total = list.length;
+        if (pts.bad || d.state === "bad") state = "bad";
+        else if (d.state === "empty" || pts.vals.length === 0) state = "empty";
+        else { state = "ok"; v = meanOf(pts.vals); count = pts.vals.length; dimVals = d.vals; pointVals = pts.vals; }
+      }
+
+      var labels = mode === "multi"
+        ? ["Průtok", "Průřez potrubí", "Průměrná rychlost", "Použité body", "Minimální rychlost", "Maximální rychlost"]
+        : ["Průtok", "Průřez potrubí"];
+
+      if (state !== "ok") {
+        var m = message(state);
+        if (mode === "multi" && state === "empty") m = { msg: "Zadejte rozměry a alespoň jednu rychlost.", bad: false };
+        return {
+          ok: false, out: null, msg: m.msg, bad: m.bad, entry: null,
+          stats: labels.map(function (l) { return [l, "—"]; })
+        };
+      }
+
+      var area = shape === "rect" ? ductArea("rect", dimVals[0], dimVals[1]) : ductArea("round", dimVals[0]);
+      var q = ductFlow(v, area);
+      var qs = q / 3600;
+      var areaTxt = nf(2, 4).format(area) + " m²";
+      var stats = [["Průtok", fmtS(qs) + " m³/s"], ["Průřez potrubí", areaTxt]];
+      var dimTxt = shape === "rect"
+        ? "hranaté " + fmtIn(dimVals[0]) + " × " + fmtIn(dimVals[1]) + " mm"
+        : "kruhové Ø " + fmtIn(dimVals[0]) + " mm";
+      var rowsOut = [
+        ["Vzduchový výkon", fmtQ(q) + " m³/h"],
+        ["Průtok", fmtS(qs) + " m³/s"],
+        ["Potrubí", dimTxt + ", průřez " + areaTxt]
+      ];
+      if (mode === "multi") {
+        var r = rangeOf(pointVals);
+        stats.push(
+          ["Průměrná rychlost", fmt2(v) + " m/s"],
+          ["Použité body", count < total ? count + " z " + total : String(count)],
+          ["Minimální rychlost", fmt2(r.min) + " m/s"],
+          ["Maximální rychlost", fmt2(r.max) + " m/s"]
+        );
+        rowsOut.push(
+          ["Rychlost", fmt2(v) + " m/s (průměr z " + count + (count === 1 ? " bodu)" : " bodů)")],
+          ["Minimum / maximum", fmt2(r.min) + " / " + fmt2(r.max) + " m/s"],
+          ["Naměřené body", pointVals.map(fmtIn).join("; ") + " m/s", true]
+        );
+      } else {
+        rowsOut.push(["Rychlost", fmtIn(v) + " m/s"]);
+      }
+      return { ok: true, out: fmtQ(q), msg: "", bad: false, stats: stats, entry: { rows: rowsOut } };
+    }
+
+    function compute() { api.result = evaluate(); onChange(); }
+
+    // Enter v bodě: přejde na další, u posledního vyplněného přidá nový bod
+    pointsBox.addEventListener("keydown", function (e) {
+      if (e.key !== "Enter" || e.target.tagName !== "INPUT") return;
+      e.preventDefault();
+      var list = pointRows();
+      var i = list.indexOf(e.target.closest("[data-point]"));
+      if (i < list.length - 1) $("input", list[i + 1]).focus();
+      else if (e.target.value.trim() !== "") addPoint(true);
+      else e.target.blur();
+    });
+    pointsBox.addEventListener("click", function (e) {
+      var rm = e.target.closest(".rm");
+      if (!rm || pointRows().length <= 2) return;
+      rm.closest("[data-point]").remove();
+      renumber();
+      compute();
+    });
+    addBtn.addEventListener("click", function () { addPoint(true); });
+
+    initSeg($('[data-seg="mode"]', root), function (val) {
+      mode = val;
+      cardV1.hidden = val === "multi";
+      cardVn.hidden = val === "single";
+      $$(".field", root).forEach(function (f) { f.classList.remove("invalid"); });
+      compute();
+    });
+    initSeg($('[data-seg="shape"]', root), function (val) {
+      shape = val;
+      fA.hidden = fB.hidden = val === "round";
+      fD.hidden = val === "rect";
+      [fA, fB, fD].forEach(function (f) { f.classList.remove("invalid"); });
+      compute();
+    });
+    root.addEventListener("input", compute);
+    wireEnterBlur(root);
+    wireReset(root, compute, function () {
+      var list = pointRows();
+      while (list.length > 2) list.pop().remove();
+      renumber();
+    });
+
+    buildRow();
+    buildRow();
+    renumber();
+    api.result = evaluate();
+    return api;
+  }
+
+  // ---------- Panel: výpočet z tlaku a k-faktoru ----------
+  function createFanPanel(root, onChange) {
+    var dpIn = $('[data-f="dp"] input', root);
+    var kIn = $('[data-f="k"] input', root);
+    var api = { el: root, result: null };
+
+    function evaluate() {
+      var c = checkFields([{ el: dpIn, zeroOk: true }, { el: kIn, zeroOk: false }]);
+      if (c.state !== "ok") {
+        var m = message(c.state);
+        return { ok: false, out: null, msg: m.msg, bad: m.bad, entry: null, stats: [["Průtok", "—"]] };
+      }
+      var dp = c.vals[0], k = c.vals[1];
+      var qs = fanFlow(k, dp);
+      var qh = qs * 3600;
+      return {
+        ok: true, out: fmtQ(qh), msg: "", bad: false,
+        stats: [["Průtok", fmtS(qs) + " m³/s"]],
+        entry: { rows: [
+          ["Vzduchový výkon", fmtQ(qh) + " m³/h"],
+          ["Průtok", fmtS(qs) + " m³/s"],
+          ["Tlak Δp", fmtIn(dp) + " Pa"],
+          ["k-faktor", fmtIn(k)]
+        ] }
+      };
+    }
+    function compute() { api.result = evaluate(); onChange(); }
+
+    root.addEventListener("input", compute);
+    wireEnterBlur(root);
+    wireReset(root, compute);
+    api.result = evaluate();
+    return api;
+  }
+
+  // ---------- Panel: cílová rychlost z požadovaného výkonu ----------
+  function createTargetPanel(root, onChange) {
+    var shape = "rect";
+    var fA = $('[data-f="a"]', root), fB = $('[data-f="b"]', root), fD = $('[data-f="d"]', root);
+    var qIn = $('[data-f="q"] input', root);
+    var aIn = $("input", fA), bIn = $("input", fB), dIn = $("input", fD);
+    var api = { el: root, result: null };
+
+    function evaluate() {
+      var dimList = shape === "rect"
+        ? [{ el: aIn, zeroOk: false }, { el: bIn, zeroOk: false }]
+        : [{ el: dIn, zeroOk: false }];
+      var c = checkFields([{ el: qIn, zeroOk: false }].concat(dimList));
+      if (c.state !== "ok") {
+        var m = message(c.state);
+        return { ok: false, out: null, msg: m.msg, bad: m.bad, entry: null, stats: [["Průtok", "—"], ["Průřez potrubí", "—"]] };
+      }
+      var q = c.vals[0];
+      var area = shape === "rect" ? ductArea("rect", c.vals[1], c.vals[2]) : ductArea("round", c.vals[1]);
+      var v = targetVelocity(q, area);
+      var qs = q / 3600;
+      var areaTxt = nf(2, 4).format(area) + " m²";
+      var dimTxt = shape === "rect"
+        ? "hranaté " + fmtIn(c.vals[1]) + " × " + fmtIn(c.vals[2]) + " mm"
+        : "kruhové Ø " + fmtIn(c.vals[1]) + " mm";
+      return {
+        ok: true, out: fmt2(v), msg: "", bad: false,
+        stats: [["Průtok", fmtS(qs) + " m³/s"], ["Průřez potrubí", areaTxt]],
+        entry: { rows: [
+          ["Cílová rychlost", fmt2(v) + " m/s"],
+          ["Požadovaný výkon", fmtIn(q) + " m³/h"],
+          ["Průtok", fmtS(qs) + " m³/s"],
+          ["Potrubí", dimTxt + ", průřez " + areaTxt]
+        ] }
+      };
+    }
+    function compute() { api.result = evaluate(); onChange(); }
+
+    initSeg($('[data-seg="shape"]', root), function (val) {
+      shape = val;
+      fA.hidden = fB.hidden = val === "round";
+      fD.hidden = val === "rect";
+      [fA, fB, fD].forEach(function (f) { f.classList.remove("invalid"); });
+      compute();
+    });
+    root.addEventListener("input", compute);
+    wireEnterBlur(root);
+    wireReset(root, compute);
+    api.result = evaluate();
+    return api;
+  }
+
+  // ---------- Panel: rekuperátor ----------
+  function createRecupPanel(root, onChange) {
+    var mode = "eff";                                     // "eff": účinnost z teplot, "temp": teplota z účinnosti
+    var F = {}, I = {};
+    ["eta", "t1", "t2", "t3", "t4", "rh", "tset", "q"].forEach(function (k) {
+      F[k] = $('[data-f="' + k + '"]', root);
+      I[k] = $("input", F[k]);
+    });
+    var api = { el: root, result: null };
+    var TEMP_BAD = "Zadejte platnou teplotu (záporné hodnoty zadáte tlačítkem ±).";
+    var PENDING = "Nejprve dokončete výpočet rekuperace (teplota za rekuperátorem).";
+
+    function fmtT(x) { if (Math.abs(x) < 0.05) x = 0; return nf(1, 1).format(x); }
+    function mix(a, b) { var o = {}, k; for (k in a) o[k] = a[k]; for (k in b) o[k] = b[k]; return o; }
+
+    // volitelné vstupy se čtou vždy, aby se správně označila případná neplatná pole
+    function readHumidity() {
+      var c = checkFields([{ el: I.rh, zeroOk: false, max: 100, optional: true }]);
+      return { bad: c.state === "bad", rh: c.vals[0] };
+    }
+    function readHeater() {
+      var c = checkFields([{ el: I.tset, signed: true, optional: true }, { el: I.q, zeroOk: false, optional: true }]);
+      return {
+        bad: c.state === "bad", invalid: c.invalid, tset: c.vals[0], q: c.vals[1],
+        any: I.tset.value.trim() !== "" || I.q.value.trim() !== ""
+      };
+    }
+
+    // doplňkový výsledek: potřebný výkon ohřívače
+    function heaterBlock(over) {
+      return mix({
+        ok: false, out: null, entry: null, label: "Potřebný výkon ohřívače", unit: "kW", heading: "Rekuperátor – ohřívač",
+        msg: "", bad: false, stats: [["Ohřev ohřívačem", "—"], ["Teplota za rekuperátorem", "—"]]
+      }, over);
+    }
+    function heaterResult(t1, t2, t3, heat) {
+      if (!heat.any) return null;
+      if (heat.bad) return heaterBlock({ msg: heat.invalid[0] ? TEMP_BAD : "Zadejte průtok vzduchu jako kladné číslo.", bad: true });
+      if (heat.tset === undefined) return heaterBlock({ msg: "Zadejte žádanou teplotu přívodu." });
+      if (heat.q === undefined) return heaterBlock({ msg: "Zadejte průtok vzduchu." });
+      var dt = heat.tset - t2;
+      var need = dt > 0;
+      var power = need ? heaterPower(heat.q, dt) : 0;
+      var stats = [["Ohřev ohřívačem", fmtT(need ? dt : 0) + " K"], ["Teplota za rekuperátorem", fmtT(t2) + " °C"]];
+      var rowsOut = [
+        ["Potřebný výkon ohřívače", fmtQ(power) + " kW"],
+        ["Žádaná teplota přívodu", fmtT(heat.tset) + " °C"],
+        ["Teplota za rekuperátorem", fmtT(t2) + " °C"],
+        ["Ohřev ohřívačem", fmtT(need ? dt : 0) + " K"],
+        ["Průtok vzduchu", fmtIn(heat.q) + " m³/h"]
+      ];
+      if (t3 !== t1) {
+        var etaReq = requiredEfficiency(heat.tset, t1, t3);
+        stats.push(["Nutná účinnost bez ohřívače", fmtT(etaReq) + " %"]);
+        rowsOut.push(["Nutná účinnost bez ohřívače", fmtT(etaReq) + " %"]);
+      }
+      return heaterBlock({
+        ok: true, out: fmtQ(power), stats: stats, entry: { rows: rowsOut },
+        msg: need ? "" : "Rekuperace stačí, ohřívač není potřeba."
+      });
+    }
+
+    // vlhkost a ohřívač doplňují hlavní výsledek (t4Est: teplota odpadního vzduchu je odhad z účinnosti)
+    function extras(t1, t2, t3, t4, t4Est, hum, heat) {
+      var out = { stats: [], rows: [], msg: "", bad: false, second: null };
+      if (hum.bad) {
+        out.msg = "Vlhkost zadejte jako číslo od 1 do 100 %.";
+        out.bad = true;
+      } else if (hum.rh !== undefined) {
+        var td = dewPoint(t3, hum.rh);
+        var x = humidityRatio(t3, hum.rh) * 1000;
+        var cond = t4 < td;
+        var frost = cond && t4 <= 0;
+        var t4txt = fmtT(t4) + " °C" + (t4Est ? " (odhad)" : "");
+        out.stats.push(["Rosný bod odváděného vzduchu", fmtT(td) + " °C"]);
+        out.rows.push(
+          ["Relativní vlhkost odváděného vzduchu", fmtIn(hum.rh) + " %"],
+          ["Rosný bod odváděného vzduchu", fmtT(td) + " °C"],
+          ["Měrná vlhkost odváděného vzduchu", fmtT(x) + " g/kg"],
+          ["Kondenzace na odpadní straně", frost ? "ano, riziko námrazy" : cond ? "ano" : "ne"]
+        );
+        if (frost) {
+          out.msg = "Riziko námrazy: odpadní vzduch " + t4txt + " je pod rosným bodem " + fmtT(td) + " °C i pod 0 °C.";
+          out.bad = true;
+        } else if (cond) {
+          out.msg = "Kondenzace na odpadní straně: odpadní vzduch " + t4txt + " je pod rosným bodem " + fmtT(td) + " °C.";
+        } else {
+          out.msg = "Bez kondenzace na odpadní straně: odpadní vzduch " + t4txt + " je nad rosným bodem " + fmtT(td) + " °C.";
+        }
+      }
+      out.second = heaterResult(t1, t2, t3, heat);
+      return out;
+    }
+
+    function evalEff(hum, heat) {
+      var base = { label: "Účinnost rekuperace", unit: "%", heading: "Rekuperátor – účinnost" };
+      var c = checkFields([
+        { el: I.t1, signed: true }, { el: I.t2, signed: true }, { el: I.t3, signed: true },
+        { el: I.t4, signed: true, optional: true }
+      ]);
+      var none = {
+        ok: false, out: null, entry: null, stats: [["Ohřev přívodního vzduchu", "—"]],
+        second: heat.any ? heaterBlock({ msg: PENDING }) : null
+      };
+      if (c.state !== "ok") {
+        return mix(base, mix(none, {
+          msg: c.state === "bad" ? TEMP_BAD : "Vyplňte teploty venkovního, přívodního a odváděného vzduchu.",
+          bad: c.state === "bad"
+        }));
+      }
+      var t1 = c.vals[0], t2 = c.vals[1], t3 = c.vals[2], t4 = c.vals[3];
+      if (t3 === t1) {
+        return mix(base, mix(none, { msg: "Teplota odváděného a venkovního vzduchu se nesmí rovnat.", bad: true }));
+      }
+      var hasEx = t4 !== undefined;
+      var eta = recupEfficiency(t1, t2, t3);
+      var etaEx = hasEx ? exhaustEfficiency(t1, t3, t4) : null;
+      var outOfRange = eta < 0 || eta > 100 || (hasEx && (etaEx < 0 || etaEx > 100));
+      var stats = [["Ohřev přívodního vzduchu", fmtT(t2 - t1) + " K"]];
+      var rowsOut = [["Účinnost (přívodní strana)", fmtT(eta) + " %"]];
+      if (hasEx) {
+        stats.push(["Účinnost – odpadní strana", fmtT(etaEx) + " %"], ["Ochlazení odpadního vzduchu", fmtT(t3 - t4) + " K"]);
+        rowsOut.push(["Účinnost (odpadní strana)", fmtT(etaEx) + " %"]);
+      }
+      rowsOut.push(
+        ["Venkovní vzduch", fmtT(t1) + " °C"],
+        ["Přívodní vzduch za rekuperátorem", fmtT(t2) + " °C"],
+        ["Odváděný vzduch z místnosti", fmtT(t3) + " °C"]
+      );
+      if (hasEx) rowsOut.push(["Odpadní vzduch za rekuperátorem", fmtT(t4) + " °C"]);
+      rowsOut.push(["Ohřev přívodního vzduchu", fmtT(t2 - t1) + " K"]);
+      var t4use = hasEx ? t4 : t3 - eta / 100 * (t3 - t1);       // odpadní teplota: měřená, jinak odhad z účinnosti
+      var ex = extras(t1, t2, t3, t4use, !hasEx, hum, heat);
+      return mix(base, {
+        ok: true, out: fmtT(eta), stats: stats.concat(ex.stats), entry: { rows: rowsOut.concat(ex.rows) }, second: ex.second,
+        msg: outOfRange ? "Účinnost je mimo rozsah 0 až 100 %. Zkontrolujte zadané teploty." : ex.msg,
+        bad: outOfRange ? true : ex.bad
+      });
+    }
+
+    function evalTemp(hum, heat) {
+      var base = { label: "Teplota přívodního vzduchu", unit: "°C", heading: "Rekuperátor – teplota" };
+      var c = checkFields([
+        { el: I.eta, zeroOk: true, max: 100 }, { el: I.t1, signed: true }, { el: I.t3, signed: true }
+      ]);
+      if (c.state !== "ok") {
+        var msg = c.state === "bad"
+          ? (c.invalid[0] ? "Účinnost zadejte jako číslo od 0 do 100 %." : TEMP_BAD)
+          : "Vyplňte účinnost a teploty venkovního a odváděného vzduchu.";
+        return mix(base, {
+          ok: false, out: null, entry: null, msg: msg, bad: c.state === "bad",
+          stats: [["Teplota odpadního vzduchu", "—"], ["Ohřev přívodního vzduchu", "—"]],
+          second: heat.any ? heaterBlock({ msg: PENDING }) : null
+        });
+      }
+      var eta = c.vals[0], t1 = c.vals[1], t3 = c.vals[2];
+      var t2 = supplyTemp(eta, t1, t3), t4 = exhaustTemp(eta, t1, t3);
+      var ex = extras(t1, t2, t3, t4, true, hum, heat);
+      return mix(base, {
+        ok: true, out: fmtT(t2), msg: ex.msg, bad: ex.bad, second: ex.second,
+        stats: [["Teplota odpadního vzduchu", fmtT(t4) + " °C"], ["Ohřev přívodního vzduchu", fmtT(t2 - t1) + " K"]].concat(ex.stats),
+        entry: { rows: [
+          ["Teplota přívodního vzduchu", fmtT(t2) + " °C"],
+          ["Teplota odpadního vzduchu", fmtT(t4) + " °C"],
+          ["Účinnost", fmtT(eta) + " %"],
+          ["Venkovní vzduch", fmtT(t1) + " °C"],
+          ["Odváděný vzduch z místnosti", fmtT(t3) + " °C"]
+        ].concat(ex.rows) }
+      });
+    }
+
+    function evaluate() {
+      var hum = readHumidity(), heat = readHeater();
+      return mode === "eff" ? evalEff(hum, heat) : evalTemp(hum, heat);
+    }
+    function compute() { api.result = evaluate(); onChange(); }
+
+    // tlačítko ±: číselná klávesnice na telefonu mínus nemá
+    root.addEventListener("click", function (e) {
+      var pm = e.target.closest(".pm");
+      if (!pm) return;
+      var inp = $("input", pm.closest(".field"));
+      var v = inp.value.trim().replace(/^[\u2212\u2013]/, "-");
+      inp.value = v.charAt(0) === "-" ? v.slice(1) : "-" + v;
+      inp.focus();
+      compute();
+    });
+    initSeg($('[data-seg="mode"]', root), function (val) {
+      mode = val;
+      F.eta.hidden = val === "eff";
+      F.t2.hidden = F.t4.hidden = val === "temp";
+      Object.keys(F).forEach(function (k) { F[k].classList.remove("invalid"); });
+      compute();
+    });
+    root.addEventListener("input", compute);
+    wireEnterBlur(root);
+    wireReset(root, compute);
+    api.result = evaluate();
+    return api;
+  }
+
+  // ---------- Pohled s výpočtem: dva panely (přívod / odvod) a výsledky ----------
+  function makeBlock(unit) {
+    var el = document.createElement("div");
+    el.className = "card result";
+    el.innerHTML = '<div class="res-label"></div>' +
+      '<div class="res-num"><span class="res-val empty">—</span><span class="res-unit">m³/h</span></div>' +
+      '<div class="res-msg" aria-live="polite"></div>' +
+      '<div class="stats"></div>';
+    var unitEl = $(".res-unit", el);
+    unitEl.textContent = unit || "m³/h";
+    return { el: el, label: $(".res-label", el), out: $(".res-val", el), unitEl: unitEl, msg: $(".res-msg", el), stats: $(".stats", el), sig: "" };
+  }
+  function renderBlock(b, r, label, isActive, defaultUnit) {
+    b.label.textContent = label;
+    b.unitEl.textContent = r.unit || defaultUnit || "m³/h";
+    b.el.classList.toggle("active", !!isActive);
+    b.out.textContent = r.ok ? r.out : "—";
+    b.out.classList.toggle("empty", !r.ok);
+    b.out.classList.toggle("sm", b.out.textContent.length > 9);
+    b.msg.textContent = r.msg || "";
+    b.msg.classList.toggle("bad", !!r.bad);
+    var sig = r.stats.map(function (s) { return s[0]; }).join("|");
+    if (sig !== b.sig) {
+      b.sig = sig;
+      b.stats.textContent = "";
+      r.stats.forEach(function (s) {
+        var d = document.createElement("div");
+        var v = document.createElement("b");
+        var l = document.createElement("small");
+        l.textContent = s[0];
+        d.appendChild(v);
+        d.appendChild(l);
+        b.stats.appendChild(d);
+      });
+    }
+    $$("b", b.stats).forEach(function (n, i) { n.textContent = r.stats[i][1]; });
+  }
+
+  function createCalcView(cfg) {
+    var view = $("#view-" + cfg.id);
+    var panelsBox = $("[data-panels]", view);
+    var resultsBox = $("[data-results]", view);
+    var count = cfg.single ? 1 : 2;                       // single: jeden výpočet bez rozlišení přívod / odvod
+    var switchEl = $("[data-split]", view);
+    var chSeg = $('[data-seg="channel"]', view);
+    var split = false;
+    var active = 0;
+    var panels = [];
+    var blocks = [];
+
+    function refresh() {
+      if (cfg.single) {
+        // druhý blok slouží pro doplňkový výsledek téhož panelu (např. výkon ohřívače), pokud ho panel dodá
+        var r0 = panels[0].result, second = r0.second;
+        renderBlock(blocks[0], r0, r0.label || cfg.mainLabel || "Vzduchový výkon", false, cfg.unit);
+        blocks[1].el.hidden = !second;
+        if (second) renderBlock(blocks[1], second, second.label, false, second.unit);
+        return;
+      }
+      panels[0].el.hidden = split && active !== 0;
+      panels[1].el.hidden = !split || active !== 1;
+      chSeg.hidden = !split;
+      blocks[1].el.hidden = !split;
+      for (var i = 0; i < 2; i++) {
+        var r = panels[i].result;
+        var base = r.label || cfg.mainLabel || "Vzduchový výkon";
+        var lower = base.charAt(0).toLowerCase() + base.slice(1);
+        var label = split ? (i === 0 ? "Přívod – " + lower : "Odvod – " + lower) : base;
+        renderBlock(blocks[i], r, label, split && active === i, cfg.unit);
+      }
+    }
+
+    for (var i = 0; i < 2; i++) {
+      if (i < count) {
+        panels.push(cfg.make(refresh));
+        panelsBox.appendChild(panels[i].el);
+      }
+      blocks.push(makeBlock(cfg.unit));
+      resultsBox.appendChild(blocks[i].el);
+    }
+    if (!cfg.single) {
+      switchEl.addEventListener("change", function () { split = switchEl.checked; refresh(); });
+      initSeg(chSeg, function (val) { active = val === "exhaust" ? 1 : 0; refresh(); });
+    }
+    refresh();
+
+    return {
+      entries: function () {
+        var out = [];
+        if (cfg.single) {
+          var r = panels[0].result;
+          if (r && r.ok) out.push({ heading: r.heading || cfg.title, rows: r.entry.rows });
+          if (r && r.second && r.second.ok) out.push({ heading: r.second.heading, rows: r.second.entry.rows });
+          return out;
+        }
+        var n = split ? 2 : 1;
+        for (var k = 0; k < n; k++) {
+          var rk = panels[k].result;
+          if (rk && rk.ok) {
+            out.push({
+              heading: (rk.heading || cfg.title) + (split ? (k === 0 ? " – přívod" : " – odvod") : ""),
+              rows: rk.entry.rows
+            });
+          }
+        }
+        return out;
+      }
+    };
+  }
+
+  // ---------- Souhrn a odeslání ----------
+  function createSummary(calcViews) {
+    var view = $("#view-summary");
+    var eventIn = $('[data-f="event"] input', view);
+    var deviceIn = $('[data-f="device"] input', view);
+    var preview = $("[data-preview]", view);
+    var copyBtn = $("[data-copy]", view);
+    var subjBtn = $("[data-subject]", view);
+    var saveBtn = $("[data-save]", view);
+    var raw = $("[data-raw]", view);
+    var ta = $("[data-report]", view);
+    var status = $("[data-status]", view);
+    var hint = $("[data-hint]", view);
+    var downloads = null;
+    var iosDevice = isIOS();
+
+    // Uložení souboru na iPhonu a iPadu nefunguje (iOS stažení z vloženého rámu zahodí), proto se tam nenabízí
+    function isIOS() {
+      var ua = navigator.userAgent || "";
+      return /iPad|iPhone|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    }
+    function saveAvailable() { return !!downloads && !iosDevice; }
+
+    function updateUi() {
+      hint.textContent = "Pro e-mail zkopírujte předmět a text a vložte je do nové zprávy." +
+        (saveAvailable() ? " Uložený soubor .txt můžete k e-mailu přiložit." : "");
+    }
+
+    function entries() {
+      var list = [];
+      calcViews.forEach(function (v) { v.entries().forEach(function (e) { list.push(e); }); });
+      return list;
+    }
+    function setStatus(text, bad) {
+      status.textContent = text || "";
+      status.classList.toggle("bad", !!bad);
+    }
+    function dateText() {
+      var d = new Date();
+      try { return d.toLocaleString("cs-CZ", { dateStyle: "medium", timeStyle: "short" }); }
+      catch (e) { return d.toLocaleString(); }
+    }
+    function fileDate() {
+      var d = new Date();
+      function p(n) { return (n < 10 ? "0" : "") + n; }
+      return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
+    }
+    function reportText(list) {
+      var lines = ["Měření vzduchového výkonu"];
+      var ev = eventIn.value.trim(), dev = deviceIn.value.trim();
+      if (ev) lines.push("Akce: " + ev);
+      if (dev) lines.push("Zařízení: " + dev);
+      lines.push("Datum: " + dateText());
+      list.forEach(function (e) {
+        lines.push("");
+        lines.push(e.heading);
+        e.rows.forEach(function (r) { lines.push(r[0] + ": " + r[1]); });
+      });
+      return lines.join("\n").replace(/[\u00a0\u202f]/g, " ").replace(/\u2212/g, "-");
+    }
+    function subject() {
+      var s = "Měření vzduchového výkonu";
+      if (eventIn.value.trim()) s += " – " + eventIn.value.trim();
+      if (deviceIn.value.trim()) s += " – " + deviceIn.value.trim();
+      return s;
+    }
+    function fileName() {
+      var s = (eventIn.value + " " + deviceIn.value).trim();
+      if (s.normalize) s = s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      s = s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
+      return "mereni-vzduchoveho-vykonu" + (s ? "-" + s : "") + "-" + fileDate() + ".txt";
+    }
+    function card(e) {
+      var c = document.createElement("div");
+      c.className = "card kv-card";
+      var h = document.createElement("div");
+      h.className = "kv-head";
+      h.textContent = e.heading;
+      c.appendChild(h);
+      e.rows.forEach(function (r, i) {
+        var row = document.createElement("div");
+        row.className = "kv-row" + (i === 0 ? " first" : "") + (r[2] ? " long" : "");
+        var k = document.createElement("span");
+        k.className = "k";
+        k.textContent = r[0];
+        var v = document.createElement("span");
+        v.className = "v";
+        v.textContent = r[1];
+        row.appendChild(k);
+        row.appendChild(v);
+        c.appendChild(row);
+      });
+      return c;
+    }
+    function renderSummary() {
+      var list = entries();
+      var has = list.length > 0;
+      preview.textContent = "";
+      if (has) {
+        list.forEach(function (e) { preview.appendChild(card(e)); });
+      } else {
+        var n = document.createElement("div");
+        n.className = "card note-card";
+        n.textContent = "Zatím nejsou žádné výsledky. Zadejte hodnoty ve výpočtu na potrubí nebo ve výpočtu z tlaku, zobrazí se tady.";
+        preview.appendChild(n);
+      }
+      ta.value = has ? reportText(list) : "";
+      copyBtn.disabled = subjBtn.disabled = saveBtn.disabled = !has;
+    }
+
+    // Kopírování: moderní schránka, jinak záložní cesta přes skrytou textarea
+    function copyText(text) {
+      function fallback() {
+        var t = document.createElement("textarea");
+        t.value = text;
+        t.setAttribute("readonly", "");
+        t.style.position = "fixed";
+        t.style.top = "-1000px";
+        t.style.opacity = "0";
+        document.body.appendChild(t);
+        t.select();
+        var ok = false;
+        try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+        document.body.removeChild(t);
+        return ok;
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        return navigator.clipboard.writeText(text).then(function () { return true; }, function () { return fallback(); });
+      }
+      return Promise.resolve(fallback());
+    }
+    copyBtn.addEventListener("click", function () {
+      renderSummary();
+      copyText(ta.value).then(function (ok) {
+        if (ok) setStatus("Text zprávy zkopírován. Vložte ho do nové zprávy.");
+        else { raw.open = true; setStatus("Kopírování se nepodařilo. Text vyberte ručně v poli Text zprávy.", true); }
+      });
+    });
+    subjBtn.addEventListener("click", function () {
+      var subj = subject();
+      copyText(subj).then(function (ok) {
+        if (ok) setStatus("Předmět zkopírován.");
+        else setStatus("Kopírování se nepodařilo. Předmět: " + subj, true);
+      });
+    });
+
+    saveBtn.addEventListener("click", function () {
+      if (!saveAvailable()) return;
+      renderSummary();
+      downloads.save({ filename: fileName(), data: ta.value.replace(/\n/g, "\r\n") }).then(
+        function () { setStatus("Soubor předán k uložení."); },
+        function (err) {
+          if (err && err.code === "declined") setStatus("Ukládání zrušeno.");
+          else setStatus("Soubor se nepodařilo uložit. Použijte Kopírovat text.", true);
+        }
+      );
+    });
+    try {
+      if (window.claude && typeof window.claude.use === "function") {
+        window.claude.use("downloads").then(function (d) { downloads = d; saveBtn.hidden = !saveAvailable(); updateUi(); }, function () {});
+      }
+    } catch (e) {}
+
+    // --- pole akce / zařízení ---
+    view.addEventListener("input", function () { setStatus(""); renderSummary(); });
+    view.addEventListener("keydown", function (e) {
+      if (e.key !== "Enter" || e.target.tagName !== "INPUT") return;
+      if (e.target === eventIn) deviceIn.focus(); else e.target.blur();
+    });
+
+    onOpen.summary = renderSummary;
+    updateUi();
+    renderSummary();
+  }
+
+  // ---------- Sestavení aplikace ----------
+  var ductView = createCalcView({
+    id: "duct", title: "Potrubí",
+    make: function (cb) { return makePanel("tpl-duct", createDuctPanel, cb); }
+  });
+  var fanView = createCalcView({
+    id: "fan", title: "Ventilátor (k-faktor)",
+    make: function (cb) { return makePanel("tpl-fan", createFanPanel, cb); }
+  });
+  var targetView = createCalcView({
+    id: "target", title: "Cílová rychlost", mainLabel: "Cílová rychlost", unit: "m/s",
+    make: function (cb) { return makePanel("tpl-target", createTargetPanel, cb); }
+  });
+  var recupView = createCalcView({
+    id: "recup", title: "Rekuperátor", single: true, mainLabel: "Účinnost rekuperace", unit: "%",
+    make: function (cb) { return makePanel("tpl-recup", createRecupPanel, cb); }
+  });
+  createSummary([ductView, fanView, targetView, recupView]);
+  render();
+})();
+</script>
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", function () {
+    navigator.serviceWorker.register("sw.js").catch(function () {});
+  });
+}
+</script>
+</body>
+</html>
