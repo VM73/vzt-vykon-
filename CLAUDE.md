@@ -24,6 +24,7 @@ Mobilní PWA pro servisní techniky VZT: vzduchový výkon z rychlosti v potrub�
 - Vícebodové měření: průměr, min, max; prázdná pole se přeskočí. Desetinná čárka i tečka.
 
 ## Pravidla
+- **Dopad na náklady a limity:** u každé úpravy předem zvážit a v souhrnu oznámit dopad na Claude (tokeny), GitHub (Actions minuty, Pages), Supabase (DB, Storage, Edge Functions – free tier), OpenAI/Anthropic API (cena za volání). Když se nic nemění, napsat „bez dopadu“.
 - Nejjednodušší řešení, měnit jen nutné; nové obrazovky přes společnou komponentu, ne kopie markupu.
 - UI česky, iOS vzhled, od 320 px.
 - Odeslání souhrnu jen: Kopírovat text, Kopírovat předmět, Uložit do souboru.
