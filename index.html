@@ -322,7 +322,86 @@
     .view.enter { animation: none; }
     .seg .thumb { transition: none; }
   }
+
+  .ver { margin-top: 24px; text-align: center; font-size: 13px; color: var(--label2); }
+
+  /* ?debug=1 */
+  .dbg { position: fixed; left: 0; right: 0; bottom: 0; z-index: 1000; max-height: 45vh; display: flex; flex-direction: column;
+    background: rgba(28, 28, 30, 0.96); color: #f2f2f7; font: 12px/1.4 ui-monospace, Menlo, Consolas, monospace;
+    padding-bottom: env(safe-area-inset-bottom); }
+  .dbg-bar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 6px 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.15); }
+  .dbg-bar b { flex: 1 1 100%; font-weight: 600; overflow-wrap: anywhere; }
+  .dbg-bar button { font: inherit; color: #0a84ff; background: rgba(255, 255, 255, 0.1); border: 0; border-radius: 6px; padding: 6px 10px; }
+  .dbg-log { overflow-y: auto; padding: 4px 8px; margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .dbg-log .e { color: #ff6961; }
+  .dbg-log .w { color: #ffd60a; }
+  .dbg.min .dbg-log { display: none; }
 </style>
+<script>
+/* ?debug=1 – panel s logem a chybami JS. Spouští se před hlavním kódem, aby zachytil i chyby při startu. */
+(function () {
+  if (!/[?&]debug=1(&|$)/.test(location.search)) return;
+  var lines = [], logEl = null, tagEl = null;
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function str(a) {
+    if (a instanceof Error) return a.name + ": " + a.message + (a.stack ? "\n" + a.stack : "");
+    if (typeof a === "object" && a !== null) { try { return JSON.stringify(a); } catch (e) { return String(a); } }
+    return String(a);
+  }
+  function add(kind, text) {
+    var d = new Date();
+    var line = { k: kind, t: pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds()) + " " + kind.toUpperCase() + " " + text };
+    lines.push(line);
+    if (logEl) show(line);
+  }
+  function show(line) {
+    var div = document.createElement("div");
+    if (line.k === "error") div.className = "e"; else if (line.k === "warn") div.className = "w";
+    div.textContent = line.t;
+    logEl.appendChild(div);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+  ["log", "info", "warn", "error"].forEach(function (k) {
+    var orig = console[k];
+    console[k] = function () {
+      add(k === "info" ? "log" : k, Array.prototype.map.call(arguments, str).join(" "));
+      if (orig) orig.apply(console, arguments);
+    };
+  });
+  window.addEventListener("error", function (e) {
+    add("error", (e.message || "Chyba") + (e.filename ? " @ " + e.filename.split("/").pop() + ":" + e.lineno + ":" + e.colno : "") + (e.error && e.error.stack ? "\n" + e.error.stack : ""));
+  });
+  window.addEventListener("unhandledrejection", function (e) { add("error", "Promise: " + str(e.reason)); });
+
+  function header() {
+    var v = document.getElementById("verze");
+    var sw = !("serviceWorker" in navigator) ? "SW nepodporován" : navigator.serviceWorker.controller ? "SW aktivní" : "SW neaktivní";
+    tagEl.textContent = (v ? v.textContent : "Verze ?") + " · " + sw + " · " + navigator.userAgent;
+  }
+  function build() {
+    var box = document.createElement("div");
+    box.className = "dbg";
+    box.innerHTML = '<div class="dbg-bar"><b></b><button type="button" data-a="copy">Kopírovat log</button>' +
+      '<button type="button" data-a="clear">Vymazat</button><button type="button" data-a="min">Skrýt</button></div><div class="dbg-log"></div>';
+    tagEl = box.querySelector("b");
+    logEl = box.querySelector(".dbg-log");
+    box.addEventListener("click", function (e) {
+      var a = e.target.getAttribute && e.target.getAttribute("data-a");
+      if (a === "copy") {
+        var text = tagEl.textContent + "\n" + lines.map(function (l) { return l.t; }).join("\n");
+        if (navigator.clipboard) navigator.clipboard.writeText(text).then(function () { add("log", "Log zkopírován"); }, function (err) { add("error", "Kopírování selhalo: " + str(err)); });
+      } else if (a === "clear") { lines = []; logEl.textContent = ""; }
+      else if (a === "min") { box.classList.toggle("min"); e.target.textContent = box.classList.contains("min") ? "Zobrazit" : "Skrýt"; }
+    });
+    document.body.appendChild(box);
+    header();
+    if ("serviceWorker" in navigator) navigator.serviceWorker.addEventListener("controllerchange", header);
+    lines.forEach(show);
+    add("log", "Debug zapnut");
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", build); else build();
+})();
+</script>
 </head>
 <body>
 <div class="app" id="app" data-open="false" data-selected="duct">
@@ -371,6 +450,8 @@
         <svg class="chev" viewBox="0 0 8 14" aria-hidden="true"><path d="M1 1l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
     </nav>
+    <!-- Verze: při vydání zvýšit i CACHE v sw.js (hlídá tests/calc.test.mjs) -->
+    <p class="ver" id="verze">Verze 2</p>
   </aside>
 
   <main class="detail">
@@ -1638,7 +1719,7 @@
 <script>
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", function () {
-    navigator.serviceWorker.register("sw.js").catch(function () {});
+    navigator.serviceWorker.register("sw.js").catch(function (e) { console.warn("Service worker: " + e); });
   });
 }
 </script>

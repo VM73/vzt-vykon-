@@ -1,6 +1,6 @@
 // Vzduchový výkon VZT – service worker
 // Appka se načte i bez signálu. Při změně souborů zvyš číslo verze.
-const CACHE = "vzt-vykon-v1";
+const CACHE = "vzt-vykon-v2";
 const SOUBORY = ["./", "index.html", "manifest.webmanifest", "icon-180.png", "icon-512.png"];
 
 self.addEventListener("install", (e) => {

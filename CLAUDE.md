@@ -10,7 +10,8 @@ Mobilní PWA pro servisní techniky VZT: vzduchový výkon z rychlosti v potrub�
 ## Stack a nasazení
 - `index.html` (vše v jednom), `sw.js` (cache `vzt-vykon-vN`), `manifest.webmanifest`, ikony `icon-180.png`, `icon-512.png`.
 - Přesunuto z artefaktu claude.ai kvůli ikoně na ploše; v artefaktu nefungovaly mailto, sdílení ani WhatsApp – nevracet.
-- Nasazení: soubory do kořene repa; při změně zvýšit `CACHE` v `sw.js`.
+- Nasazení: soubory do kořene repa; při vydání zvýšit **zároveň** `Verze N` v `index.html` (`<p id="verze">`, dole v menu) a `CACHE = "vzt-vykon-vN"` v `sw.js` – test hlídá shodu.
+- `?debug=1` v adrese zapne panel s logem konzole a chybami JS (verze, stav SW, user-agent; Kopírovat log / Vymazat / Skrýt). Kód je v `<head>` před hlavním skriptem.
 
 ## Vzorce a jednotky (blok `// <calc>` … `// </calc>` v index.html)
 - **Výkon vždy m³/h, průtok vždy m³/s.** k-faktor je bezrozměrný.
@@ -31,15 +32,15 @@ Mobilní PWA pro servisní techniky VZT: vzduchový výkon z rychlosti v potrub�
 - Ikony: rodina pracovních appek (#4a8fd4 → #2c5f94), motiv ventilátor.
 
 ## Testy
-- Výpočty z bloku `<calc>` v Node na známých vstupech (každý vzorec min. 2 příklady).
+- Výpočty z bloku `<calc>` v Node na známých vstupech (každý vzorec min. 2 příklady): `tests/calc.test.mjs`, spuštění `node --test tests/` (bez závislostí; funkce se čtou přímo z index.html). Obsahuje i kontrolu shody verze s `CACHE`.
 - Playwright: iPhone 13, Pixel 7, 320 / 390 px.
 
 ## Stav
+- Verze 2: debug panel, číslo verze, testy výpočtů.
 - Menu: Výpočet na potrubí, Výpočet z tlaku (k-faktor), Cílová rychlost, Rekuperátor, Souhrn a odeslání.
 
 ## Otevřené otázky
-- Chybí `?debug=1` a viditelné číslo verze (pravidlo pro všechny appky) – doplnit při příští úpravě.
-- Testy výpočtů v repu zatím nejsou.
+- Chybí Playwright testy (iPhone 13, Pixel 7, 320 / 390 px) – v2 ověřena jen jednorázovým skriptem mimo repo.
 
 ## Neměnit
 - Vzorce a jednotky výše bez výslovného potvrzení.
